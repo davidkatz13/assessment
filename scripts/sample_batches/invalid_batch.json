@@ -1,0 +1,36 @@
+{
+  "claims": [
+    {
+      "external_id": "CLM-2001",
+      "claimant_name": "Tom Alvarez",
+      "policy_number": "POL-11220",
+      "claim_type": "not_a_real_type",
+      "amount_cents": 90000,
+      "received_at": "2026-08-30T09:15:00Z"
+    },
+    {
+      "external_id": "CLM-2002",
+      "claimant_name": "Sara Kim",
+      "policy_number": "POL-44991",
+      "claim_type": "auto",
+      "amount_cents": -500,
+      "received_at": "2026-08-30T09:15:00Z"
+    },
+    {
+      "external_id": "",
+      "claimant_name": "Missing External Id",
+      "policy_number": "POL-00001",
+      "claim_type": "life",
+      "amount_cents": 10000,
+      "received_at": "2026-08-30T09:15:00Z"
+    },
+    {
+      "external_id": "CLM-2001",
+      "claimant_name": "Duplicate Of Row 0",
+      "policy_number": "POL-11220",
+      "claim_type": "auto",
+      "amount_cents": 5000,
+      "received_at": "2026-08-30T09:15:00Z"
+    }
+  ]
+}

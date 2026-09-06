@@ -1,0 +1,32 @@
+{
+  "claims": [
+    {
+      "external_id": "CLM-1001",
+      "claimant_name": "Jane Doe",
+      "policy_number": "POL-88213",
+      "claim_type": "auto",
+      "amount_cents": 450000,
+      "received_at": "2026-08-30T09:15:00Z",
+      "status": "submitted",
+      "document_text": "Vehicle collision on Route 9, front bumper damage. Police report attached."
+    },
+    {
+      "external_id": "CLM-1002",
+      "claimant_name": "Marcus Reed",
+      "policy_number": "POL-77410",
+      "claim_type": "property",
+      "amount_cents": 1250000,
+      "received_at": "2026-08-30T11:42:00Z",
+      "status": "under_review",
+      "document_text": "Water damage to basement following storm on 2026-08-28."
+    },
+    {
+      "external_id": "CLM-1003",
+      "claimant_name": "Priya Nair",
+      "policy_number": "POL-53309",
+      "claim_type": "health",
+      "amount_cents": 32000,
+      "received_at": "2026-08-31T08:05:00Z"
+    }
+  ]
+}

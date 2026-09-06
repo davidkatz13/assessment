@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16
+    env_file:
+      - .env
+    ports:
+      # Host-side 5433 -> container's native 5432, to avoid colliding with any
+      # Postgres already running on the host's 5432 (macOS routes 127.0.0.1:5432 to
+      # whichever listener is more specific, which silently steals the connection).
+      # Container-to-container traffic (the api service) still uses 5432 internally,
+      # untouched by this host remap.
+      - "15432:5432"
+    volumes:
+      - marvelx_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    env_file:
+      - .env
+    environment:
+      # Override the DB host/port for container-to-container networking: compose
+      # resolves "db" to the db container via its built-in DNS on their shared
+      # network, on the container's native port 5432 (independent of whatever host
+      # port db is remapped to above). Everything else (credentials, size caps, etc.)
+      # comes from .env.
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - marvelx_uploads:/srv/app/data/uploads
+
+volumes:
+  marvelx_postgres_data:
+  marvelx_uploads:

@@ -1,0 +1,13 @@
+{
+  "claims": [
+    {
+      "external_id": "CLM-1001",
+      "claimant_name": "Jane Doe",
+      "policy_number": "POL-88213",
+      "claim_type": "auto",
+      "amount_cents": 450000,
+      "received_at": "2026-08-30T09:15:00Z",
+      "document_text": "Resubmission attempt of an external_id that already exists from valid_batch.json."
+    }
+  ]
+}
