@@ -12,10 +12,12 @@ class ControllerFactory:
     def __init__(
         self, repository_factory: RepositoryFactory, service_factory: ServiceFactory
     ) -> None:
+        """Store the factories controllers built here are wired up through."""
         self._repository_factory = repository_factory
         self._service_factory = service_factory
 
     def build_batch_controller(self) -> BatchController:
+        """Build a BatchController with its ingestion and query services wired up."""
         batch_repository = self._repository_factory.build_batch_repository()
         file_repository = self._repository_factory.build_file_storage_repository()
         ingestion_service = self._service_factory.build_batch_ingestion_service(
@@ -27,6 +29,7 @@ class ControllerFactory:
         return BatchController(ingestion_service, query_service)
 
     def build_claim_controller(self) -> ClaimController:
+        """Build a ClaimController with its query service wired up."""
         batch_repository = self._repository_factory.build_batch_repository()
         query_service = self._service_factory.build_claim_query_service(
             batch_repository

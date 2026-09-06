@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     max_claims_per_batch: int = 5_000
     max_reported_errors: int = 200
     log_level: str = "INFO"
+    cors_allowed_origins: str = "http://localhost:3000"
 
     @property
     def database_url(self) -> URL:
@@ -30,6 +31,15 @@ class Settings(BaseSettings):
             port=self.postgres_port,
             database=self.postgres_db,
         )
+
+    @property
+    def cors_allowed_origins_list(self) -> list[str]:
+        """cors_allowed_origins, split into a list for CORSMiddleware."""
+        return [
+            origin.strip()
+            for origin in self.cors_allowed_origins.split(",")
+            if origin.strip()
+        ]
 
 
 settings = Settings()

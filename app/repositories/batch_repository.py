@@ -16,9 +16,15 @@ class BatchRepository:
     transaction boundaries that make batch ingestion atomic."""
 
     def __init__(self, session: Session) -> None:
+        """Store the request-scoped session all methods below execute against."""
         self._session = session
 
     def get_by_checksum(self, checksum: str) -> Batch | None:
+        """Return the batch previously stored under this file checksum, if any.
+
+        Used for idempotent replay: a caller resubmitting byte-identical content
+        gets back the original outcome instead of triggering reprocessing.
+        """
         stmt = (
             select(Batch)
             .options(selectinload(Batch.errors))
@@ -27,6 +33,7 @@ class BatchRepository:
         return self._session.execute(stmt).scalar_one_or_none()
 
     def get_existing_external_ids(self, external_ids: set[str]) -> set[str]:
+        """Return the subset of external_ids that already belong to a persisted claim."""
         if not external_ids:
             return set()
         stmt = select(Claim.external_id).where(Claim.external_id.in_(external_ids))
@@ -125,13 +132,18 @@ class BatchRepository:
     def list_batches(
         self,
         *,
+        batch_id: uuid.UUID | None,
         status: str | None,
         submitted_after: datetime | None,
         submitted_before: datetime | None,
         limit: int,
         offset: int,
     ) -> tuple[list[Batch], int]:
+        """Return a page of batches matching the given filters, newest first, plus
+        the total count matching those filters (independent of limit/offset)."""
         conditions = []
+        if batch_id is not None:
+            conditions.append(Batch.id == batch_id)
         if status is not None:
             conditions.append(Batch.status == status)
         if submitted_after is not None:
@@ -166,6 +178,9 @@ class BatchRepository:
         limit: int,
         offset: int,
     ) -> tuple[list[Claim], int]:
+        """Return a page of claims matching the given filters, newest-received
+        first, plus the total count matching those filters (independent of
+        limit/offset)."""
         # Every condition appended here lands in the same .where(*conditions) call
         # below, which ANDs them together -- selecting claimant_name and status both
         # narrows to their intersection, it does not union the two separately.

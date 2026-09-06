@@ -21,6 +21,8 @@ class ClaimIn(BaseModel):
 
 
 class BatchErrorOut(BaseModel):
+    """One validation or conflict error, as returned to the API caller."""
+
     row_index: int | None
     external_id: str | None
     field: str | None
@@ -28,6 +30,7 @@ class BatchErrorOut(BaseModel):
 
     @classmethod
     def from_orm_error(cls, error: BatchError) -> "BatchErrorOut":
+        """Build a BatchErrorOut from a persisted BatchError row."""
         return cls(
             row_index=error.row_index,
             external_id=error.external_id,
@@ -50,6 +53,7 @@ class BatchSubmitResponse(BaseModel):
 
     @classmethod
     def from_orm_batch(cls, batch: Batch) -> "BatchSubmitResponse":
+        """Build a BatchSubmitResponse from a persisted Batch, committed or rejected."""
         errors = [BatchErrorOut.from_orm_error(error) for error in batch.errors]
         return cls(
             batch_id=batch.id,
@@ -64,11 +68,14 @@ class BatchSubmitResponse(BaseModel):
 
 
 class PaginatedBatches(BaseModel):
+    """A page of GET /batches results, plus the total count matching the filters."""
+
     total: int
     items: list[BatchSubmitResponse]
 
     @classmethod
     def from_orm_batches(cls, batches: list[Batch], total: int) -> "PaginatedBatches":
+        """Build a page of BatchSubmitResponse items from persisted Batch rows."""
         return cls(
             total=total,
             items=[BatchSubmitResponse.from_orm_batch(batch) for batch in batches],
@@ -76,6 +83,8 @@ class PaginatedBatches(BaseModel):
 
 
 class ClaimOut(BaseModel):
+    """A single persisted claim, as returned by GET /claims."""
+
     id: uuid.UUID
     batch_id: uuid.UUID
     external_id: str
@@ -90,6 +99,7 @@ class ClaimOut(BaseModel):
 
     @classmethod
     def from_orm_claim(cls, claim: Claim) -> "ClaimOut":
+        """Build a ClaimOut from a persisted Claim row."""
         return cls(
             id=claim.id,
             batch_id=claim.batch_id,
@@ -106,11 +116,14 @@ class ClaimOut(BaseModel):
 
 
 class PaginatedClaims(BaseModel):
+    """A page of GET /claims results, plus the total count matching the filters."""
+
     total: int
     items: list[ClaimOut]
 
     @classmethod
     def from_orm_claims(cls, claims: list[Claim], total: int) -> "PaginatedClaims":
+        """Build a page of ClaimOut items from persisted Claim rows."""
         return cls(
             total=total, items=[ClaimOut.from_orm_claim(claim) for claim in claims]
         )

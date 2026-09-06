@@ -12,6 +12,9 @@ from core.exceptions import BatchConflictError, BatchParseError, BatchTooLargeEr
 
 @dataclass
 class BatchIngestionResult:
+    """The outcome of one ingest() call: the persisted batch (committed or
+    rejected), and whether it got there via an unanticipated DB conflict."""
+
     batch: Batch
     conflicted: bool = False
 
@@ -33,6 +36,7 @@ class BatchIngestionService:
         max_upload_size_bytes: int,
         max_reported_errors: int,
     ) -> None:
+        """Store the collaborators and config every ingest() call needs."""
         self._validation_service = validation_service
         self._batch_repository = batch_repository
         self._file_repository = file_repository
@@ -40,6 +44,7 @@ class BatchIngestionService:
         self._max_reported_errors = max_reported_errors
 
     async def ingest_from_upload(self, file: UploadFile) -> BatchIngestionResult:
+        """Read an uploaded file under the configured size limit, then ingest it."""
         content = await self._read_within_limit(file)
         return self.ingest(
             content=content,
@@ -71,6 +76,12 @@ class BatchIngestionService:
     def ingest(
         self, *, content: bytes, filename: str, content_type: str
     ) -> BatchIngestionResult:
+        """Run the full ingestion flow for one already-read batch file: idempotency
+        check, content-addressed storage, parse, validate, then commit or reject
+        atomically via the repository. Returns the resulting batch either way --
+        never raises for an expected failure (bad input, duplicate, DB conflict),
+        only for a genuinely unexpected error.
+        """
         checksum = self._file_repository.compute_checksum(content)
 
         existing = self._batch_repository.get_by_checksum(checksum)
@@ -150,6 +161,7 @@ def _error(
     field: str | None = None,
     message: str,
 ) -> dict[str, Any]:
+    """Build one error dict in the shape BatchRepository/BatchErrorOut expect."""
     return {
         "row_index": row_index,
         "external_id": external_id,

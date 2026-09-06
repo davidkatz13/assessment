@@ -12,10 +12,12 @@ from core.db import get_db_session
 def get_repository_factory(
     session: Annotated[Session, Depends(get_db_session)],
 ) -> RepositoryFactory:
+    """FastAPI dependency: build a RepositoryFactory bound to the request's session."""
     return RepositoryFactory(session)
 
 
 def get_service_factory() -> ServiceFactory:
+    """FastAPI dependency: build a ServiceFactory."""
     return ServiceFactory()
 
 
@@ -23,6 +25,7 @@ def get_controller_factory(
     repository_factory: Annotated[RepositoryFactory, Depends(get_repository_factory)],
     service_factory: Annotated[ServiceFactory, Depends(get_service_factory)],
 ) -> ControllerFactory:
+    """FastAPI dependency: build a ControllerFactory wired to the other factories."""
     return ControllerFactory(repository_factory, service_factory)
 
 

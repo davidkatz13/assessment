@@ -57,6 +57,11 @@ expects. Note `POSTGRES_PORT` defaults to `15432` in `.env_template`, not `5432`
 uncommon port was picked deliberately, since a locally-running Postgres install can
 silently intercept `127.0.0.1:5432` ahead of Docker's own proxy on macOS.
 
+`CORS_ALLOWED_ORIGINS` is a comma-separated list of origins allowed to call this API
+from a browser (default `http://localhost:3000`, for a local Next.js dev server) —
+see `core/config.py`'s `cors_allowed_origins_list` and `main.py`'s `CORSMiddleware`
+registration.
+
 ### Submitting batches yourself
 
 ```bash
@@ -175,6 +180,51 @@ inconsistent about what they set there for a `.json` file, and the actual JSON p
 step already covers correctness; gating on it would reject legitimate uploads for a
 cosmetic reason.
 
+### API error shapes
+
+Two contracts, not one, and a frontend needs to branch on which endpoint it called
+rather than assume a single error envelope everywhere:
+
+- `POST /api/v1/batches` always returns `BatchSubmitResponse` — `{batch_id, status,
+  claim_count, submitted_at, error_count, errors, truncated}` — on **every** outcome
+  (`201` committed, `422` content rejected, `409` conflict). This is a resource
+  representation, not a generic error, which is why it doesn't match the shape below.
+- Every other failure across the whole API — a `413` oversized upload, a malformed
+  query/path param (bad UUID, bad date, an invalid `claim_type`/`status` value),
+  a malformed request body elsewhere — returns the same
+  `{"detail": [{"field": "<name>", "message": "<why>"}]}` envelope. This is a single
+  `RequestValidationError` handler in `main.py` reshaping FastAPI's default (verbose,
+  `loc`/`msg`/`type`/`input`/`url` per error) into something consistent, plus the
+  `BatchTooLargeError` handler emitting the same shape for `413`.
+
+`claim_type` and `status` on `GET /api/v1/claims`, and `status` on `GET
+/api/v1/batches`, are typed against `core/enums.py` (not `str`) specifically so a
+typo (`?status=aproved`) is a `422` in this shape, not a silent `200` with an empty
+result set indistinguishable from "no matches." FastAPI documents the allowed values
+for these in `/openapi.json` automatically as a result, too.
+
+## Known limitations (frontend-facing)
+
+Surfaced while a separate session started building the reviewer UI against this API:
+
+- **Size/claim-count limits aren't exposed by any endpoint.** `MAX_BATCH_FILE_SIZE_BYTES`
+  (25 MiB) and `MAX_CLAIMS_PER_BATCH` (5,000) live only in this service's config. A
+  frontend wanting a fast pre-upload check has to hardcode matching constants —
+  which can silently drift if `.env` changes later. Deliberately not fixed with a
+  config endpoint for this pass; keep the two in sync by hand if either changes.
+- **A `413` (oversized upload) never gets a `batches` row.** By design: the upload is
+  never fully buffered or hashed once it exceeds the cap, so there's no complete
+  artifact to record. This means batch history can never show an "attempted, too
+  large" entry — a frontend should treat `413` as an ephemeral, toast-only error, not
+  something that will appear on a later list refresh.
+- **`external_id` is globally unique with no update path.** Once a claim is
+  committed, that `external_id` can never appear in any future batch again — a
+  duplicate is always an error, never a valid resubmission or correction. This is the
+  intended model (claims are append-only, closer to an audit log than a mutable
+  record), not a gap.
+- **No auth, no rate limiting, no `/health` endpoint.** Reasonable omissions given
+  this project's scope — deliberate, not oversights.
+
 ## Testing strategy
 
 Tests exercise the business logic (`BatchValidationService`, `BatchIngestionService`)
@@ -213,6 +263,10 @@ unique-constraint race raises, the FK ordering between a `batches` insert and a 
   dev) test database is the natural next investment, deliberately not built now.
 - **Orphaned file cleanup, multi-document-per-claim, serving document bytes back
   out.** None of these are required by anything currently built.
+- **A `pg_trgm` index on `claims.claimant_name`.** The search there is
+  `ILIKE '%term%'` (`app/repositories/batch_repository.py`) — a leading wildcard, so
+  no plain B-tree index helps; it's a full scan. Fine at this scale; a trigram index
+  is the real fix if this ever mattered in production.
 
 ## Time spent
 

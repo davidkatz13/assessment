@@ -5,17 +5,18 @@ from fastapi import APIRouter, Query
 
 from app.api.deps import Controllers
 from app.models.schemas import PaginatedClaims
+from core.enums import ClaimStatus, ClaimType
 
 router = APIRouter(prefix="/claims", tags=["claims"])
 
 
 @router.get("", response_model=PaginatedClaims)
-async def list_claims(
+def list_claims(
     controllers: Controllers,
     policy_number: str | None = None,
     claimant_name: str | None = None,
-    claim_type: str | None = None,
-    status: str | None = None,
+    claim_type: ClaimType | None = None,
+    status: ClaimStatus | None = None,
     batch_id: uuid.UUID | None = None,
     received_after: datetime | None = None,
     received_before: datetime | None = None,

@@ -14,11 +14,13 @@ class FileStorageRepository:
     """
 
     def __init__(self, base_dir: str) -> None:
+        """Ensure the batches subdirectory under base_dir exists, ready to write to."""
         self._base_dir = Path(base_dir) / "batches"
         self._base_dir.mkdir(parents=True, exist_ok=True)
 
     @staticmethod
     def compute_checksum(content: bytes) -> str:
+        """Return the sha256 hex digest of content, used as its storage key."""
         return hashlib.sha256(content).hexdigest()
 
     def save(self, content: bytes, checksum: str) -> str:

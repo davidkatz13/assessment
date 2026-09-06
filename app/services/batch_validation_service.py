@@ -30,9 +30,15 @@ class BatchValidationService:
     """
 
     def __init__(self, max_claims_per_batch: int) -> None:
+        """Store the configured cap on how many claims a single batch may contain."""
         self._max_claims_per_batch = max_claims_per_batch
 
     def parse_claims(self, content: bytes) -> list[Any]:
+        """Parse the raw batch file into its list of (still-unvalidated) claims.
+
+        Raises BatchParseError if content isn't valid JSON, or isn't a JSON object
+        with a 'claims' array.
+        """
         try:
             payload = json.loads(content)
         except (json.JSONDecodeError, UnicodeDecodeError) as exc:
@@ -42,6 +48,9 @@ class BatchValidationService:
         return payload["claims"]
 
     def validate(self, raw_claims: list[Any]) -> ClaimValidationResult:
+        """Validate every raw claim -- schema, business rules, and duplicate
+        external_id within the batch -- accumulating all errors rather than
+        stopping at the first one found."""
         if len(raw_claims) > self._max_claims_per_batch:
             return ClaimValidationResult(
                 errors=[
@@ -91,6 +100,7 @@ class BatchValidationService:
     def _to_row_errors(
         index: int, external_id: str | None, exc: ValidationError
     ) -> list[dict[str, Any]]:
+        """Flatten one Pydantic ValidationError into our row-error dict shape."""
         return [
             {
                 "row_index": index,

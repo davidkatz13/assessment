@@ -13,6 +13,7 @@ class ServiceFactory:
     themselves."""
 
     def build_batch_validation_service(self) -> BatchValidationService:
+        """Build a BatchValidationService configured from settings."""
         return BatchValidationService(
             max_claims_per_batch=settings.max_claims_per_batch
         )
@@ -20,6 +21,8 @@ class ServiceFactory:
     def build_batch_ingestion_service(
         self, batch_repository: BatchRepository, file_repository: FileStorageRepository
     ) -> BatchIngestionService:
+        """Build a BatchIngestionService wired to the given repositories and a
+        fresh BatchValidationService, configured from settings."""
         return BatchIngestionService(
             self.build_batch_validation_service(),
             batch_repository,
@@ -31,9 +34,11 @@ class ServiceFactory:
     def build_batch_query_service(
         self, batch_repository: BatchRepository
     ) -> BatchQueryService:
+        """Build a BatchQueryService wired to the given repository."""
         return BatchQueryService(batch_repository)
 
     def build_claim_query_service(
         self, batch_repository: BatchRepository
     ) -> ClaimQueryService:
+        """Build a ClaimQueryService wired to the given repository."""
         return ClaimQueryService(batch_repository)

@@ -11,6 +11,7 @@ class ClaimController:
     because claims search is a distinct use case from batch ingestion."""
 
     def __init__(self, query_service: ClaimQueryService) -> None:
+        """Store the service this controller orchestrates calls to."""
         self._query_service = query_service
 
     def list_claims(
@@ -26,6 +27,7 @@ class ClaimController:
         limit: int,
         offset: int,
     ) -> PaginatedClaims:
+        """Return a page of claims matching the given filters."""
         items, total = self._query_service.list_claims(
             policy_number=policy_number,
             claimant_name=claimant_name,
