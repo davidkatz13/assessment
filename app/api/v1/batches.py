@@ -33,6 +33,7 @@ def list_batches(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ) -> PaginatedBatches:
+    """List/search previously submitted batches, newest first."""
     batch_controller = controllers.build_batch_controller()
     return batch_controller.list_batches(
         batch_id=batch_id,

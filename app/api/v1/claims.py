@@ -23,6 +23,8 @@ def list_claims(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ) -> PaginatedClaims:
+    """Search/filter persisted claims across all batches."""
+
     claim_controller = controllers.build_claim_controller()
     return claim_controller.list_claims(
         policy_number=policy_number,

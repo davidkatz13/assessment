@@ -28,6 +28,8 @@ app.include_router(claims.router, prefix="/api/v1")
 async def handle_batch_too_large(
     request: Request, exc: BatchTooLargeError
 ) -> JSONResponse:
+    """Return a 413 in the same {"detail": [{"field", "message"}]} shape used for
+    every other generic request error, instead of FastAPI's bare-string default."""
     return JSONResponse(
         status_code=413, content={"detail": [{"field": "file", "message": str(exc)}]}
     )

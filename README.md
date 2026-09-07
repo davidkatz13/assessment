@@ -243,8 +243,6 @@ unique-constraint race raises, the FK ordering between a `batches` insert and a 
 
 ## What's next / deliberately left out
 
-- **Reviewer UI.** Out of scope for this pass by request; a separate follow-up once
-  the API contract above is settled.
 - **Binary document attachments** (PDF/image bytes per claim). The brief's own
   suggested schema uses a text field; building real attachment handling would be
   scope invented for its own sake, not scope the brief asked for.
@@ -263,6 +261,23 @@ unique-constraint race raises, the FK ordering between a `batches` insert and a 
   dev) test database is the natural next investment, deliberately not built now.
 - **Orphaned file cleanup, multi-document-per-claim, serving document bytes back
   out.** None of these are required by anything currently built.
+- **Blob storage instead of local disk.** `data/uploads/batches/<sha256>.json` is a
+  stand-in for an object store. The content-addressed key is exactly what a
+  production version would use as an S3 key — swapping the storage backend doesn't
+  change the write-before-transaction pattern above, just where the bytes land.
+- **A genuinely async DB stack (async SQLAlchemy + `asyncpg`).** The DB session is
+  fully synchronous (see "async vs def" in `CLAUDE.md`), and `submit_batch` is
+  `async def` because `UploadFile.read()` is truly awaited. That means the
+  synchronous `commit_batch`/`reject_batch` calls run *inside* that coroutine on the
+  event-loop thread — for a large batch's insert, that blocks the loop for the
+  duration of the DB call, stalling every other concurrent request on any endpoint,
+  not just batch uploads. Fine at this project's scale; a real async driver
+  end-to-end is the fix if throughput ever mattered. Separately, the streaming read
+  in `BatchIngestionService._read_within_limit` checks the size cap after every 1 MiB
+  chunk and aborts as soon as it's crossed, so an oversized upload (e.g. 10GB) never
+  buffers past roughly one cap's worth in memory — but there's no per-read timeout,
+  so a client trickling bytes slowly while staying under the cap can still hold a
+  connection open with no mitigation today.
 - **A `pg_trgm` index on `claims.claimant_name`.** The search there is
   `ILIKE '%term%'` (`app/repositories/batch_repository.py`) — a leading wildcard, so
   no plain B-tree index helps; it's a full scan. Fine at this scale; a trigram index
@@ -270,11 +285,7 @@ unique-constraint race raises, the FK ordering between a `batches` insert and a 
 
 ## Time spent
 
-This was explicitly not run against the suggested 4-hour timebox — by request, the
-session prioritized walking through file-upload and schema design options rather than
-converging immediately. What was cut to keep things right-sized regardless: no
-reviewer UI yet, no CSV support, no 3rd-party ingestion connectors, no DB-level
-integration tests (see above).
+4-5 hours of development time
 
 ## Where the next person (paired with an AI agent) is most likely to get it wrong
 
